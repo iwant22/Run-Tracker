@@ -1,17 +1,29 @@
 import SwiftUI
+import MapKit
 
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "shoe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Run-tracker")
-        }
-        .padding()
+struct ContentView: View
+{
+    @StateObject private var viewModel = ContentViewModel()
+    
+    var body: some View
+    {
+        Map(coordinateRegion: $viewModel.region, showsUserLocation:true)
+            .ignoresSafeArea()
+            .accentColor(Color(.systemPink))
+            .onAppear {
+                viewModel.checkIfLocationServicesIsEnabled()
+            }
+            .mapControls()
+            {
+                MapUserLocationButton()
+                MapCompass()
+                MapPitchToggle()
+                MapScaleView()
+            }
     }
 }
-
-#Preview {
+    
+#Preview
+{
     ContentView()
 }
