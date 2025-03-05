@@ -39,6 +39,7 @@ struct ContentView: View {
                         .background(isRunning ? Color.red : Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(10)
+                        .navigationBarBackButtonHidden()
                 }
                 .padding()
                 

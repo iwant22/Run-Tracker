@@ -16,12 +16,6 @@ struct MapView: View
     var body: some View
     {
         VStack {
-            NavigationLink("Stop Run", destination: ContentView())
-                .padding()
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-            
             Map(coordinateRegion: $viewModel.region, showsUserLocation:true)
                 .ignoresSafeArea()
                 .accentColor(Color(.systemPink))
@@ -35,6 +29,13 @@ struct MapView: View
                 MapPitchToggle()
                 MapScaleView()
             }
+            
+            NavigationLink("Stop Run", destination: ContentView())
+                .padding()
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(10)
+            
         }
     }
 }
