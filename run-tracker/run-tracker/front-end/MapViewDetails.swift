@@ -17,28 +17,34 @@ import CoreLocation
 import MapKit
 
 enum MapDetails {
-    static let startingLocation = CLLocationCoordinate2D(latitude: 33.88198, longitude: -117.88531)
-    static let defaultSpan = MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+    static let startingLocation = CLLocationCoordinate2D(latitude: 37.33483, longitude: -122.00892)
+    static let defaultSpan = MKCoordinateSpan(latitudeDelta: 0.001, longitudeDelta: 0.001)
 }
 
-final class MapViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
+final class LocationTracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     @Published var region = MKCoordinateRegion(
-        center: MapDetails.startingLocation,
-        span: MapDetails.defaultSpan
-    )
+            center: MapDetails.startingLocation,
+            span: MapDetails.defaultSpan
+        )
+    @Published var locationManager: CLLocationManager?
     
-    var locationManager: CLLocationManager?
-
+    func getLocation() -> CLLocationCoordinate2D {
+        if locationManager?.authorizationStatus == .authorizedAlways, locationManager?.authorizationStatus == .authorizedWhenInUse {
+            return region.center
+        }
+        return MapDetails.startingLocation
+    }
+    
     func checkIfLocationServicesIsEnabled() {
         if CLLocationManager.locationServicesEnabled() {
-            locationManager = CLLocationManager()
-            locationManager?.delegate = self
-            locationManager?.activityType = .fitness
-            locationManager?.desiredAccuracy = kCLLocationAccuracyBest
-            locationManager?.requestWhenInUseAuthorization()
+            self.locationManager = CLLocationManager()
+            self.locationManager?.delegate = self
+            self.locationManager?.activityType = .fitness
+            self.locationManager?.desiredAccuracy = kCLLocationAccuracyBest
+            self.locationManager?.requestWhenInUseAuthorization()
         } else {
-            print("Show an alert letting them know this is off and to go turn it on.")
+            print("Location services are disabled. Prompt the user to enable them in settings.")
         }
     }
 
@@ -68,11 +74,8 @@ final class MapViewModel: NSObject, ObservableObject, CLLocationManagerDelegate 
         DispatchQueue.main.async {
             self.region = MKCoordinateRegion(
                 center: userLocation.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01) // Zoom in closely
+                span: MapDetails.defaultSpan // Zoom in closely
             )
         }
-        
-        // Stop updating location after initial zoom-in to save battery
-        manager.stopUpdatingLocation()
     }
 }
