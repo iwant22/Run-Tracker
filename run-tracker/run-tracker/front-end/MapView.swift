@@ -5,17 +5,6 @@
 //  Created by csuftitan on 3/5/25.
 //
 
-let examplePath: [CLLocationCoordinate2D] = [
-            CLLocationCoordinate2D(latitude: 33.882345662026694, longitude: -117.88513931588159),
-            CLLocationCoordinate2D(latitude: 33.88232196202217, longitude: -117.88519641165307),
-            CLLocationCoordinate2D(latitude: 33.88227456199336, longitude: -117.88520973399973),
-            CLLocationCoordinate2D(latitude: 33.8822145219191, longitude: -117.88516786376734),
-            CLLocationCoordinate2D(latitude: 33.88219872189252, longitude: -117.88512028395775),
-            CLLocationCoordinate2D(latitude: 33.8822161019216, longitude: -117.88508031691771),
-            CLLocationCoordinate2D(latitude: 33.882230321942735, longitude: -117.88505747860911),
-            CLLocationCoordinate2D(latitude: 33.88227140199051, longitude: -117.88504034987766)
-        ]
-
 import SwiftUI
 import MapKit
 
@@ -24,10 +13,9 @@ struct MapView: View
     @StateObject private var locationTracker = LocationTracker()
     @State private var cameraPosition: MapCameraPosition = .userLocation(followsHeading: true, fallback: .automatic)
     @State private var polyline: MKPolyline?
-    @State private var route: [CLLocationCoordinate2D] = [
-        CLLocationCoordinate2D()
-    ]
+    @State private var route: [CLLocationCoordinate2D] = []
     @State private var locationIsRecording: Bool = false
+    @State var distance: Double = 0
         
     var body: some View
     {
@@ -38,28 +26,29 @@ struct MapView: View
                 MapPolyline(coordinates: route)
                     .stroke(.blue, lineWidth: 4)
             }
-            .ignoresSafeArea()
             .tint(.blue)
             .onAppear {
                 locationTracker.checkIfLocationServicesIsEnabled()
-                //route[0] = locationTracker.region.center
-                // THIS^ line is the problem -- gives Apple HQ instead of user location
             }
             .onChange(of: locationTracker.region, initial: false) { oldRegion, newRegion in
-                let currentLocation = newRegion.center
+                let prevLocation = oldRegion.center
+                let currLocation = newRegion.center
                 
-                if (!locationIsRecording) {
-                    route[0] = currentLocation
-                    locationIsRecording = true
-                } else if (distanceInMeters(from: route.last!, to: currentLocation) >= 1) {
-                    route.append(currentLocation)
+                if (locationIsRecording) {
+                    distance += distanceInMeters(from: prevLocation, to: currLocation)
+                    print(distance)
+                }
+                
+                if (!locationIsRecording ||
+                    distanceInMeters(from: route.last!, to: currLocation) >= 1) {
+                    route.append(currLocation)
+                    
+                    if !locationIsRecording {locationIsRecording = true}
                 }
             }
             .mapControls()
             {
                 MapUserLocationButton()
-                MapCompass()
-                MapPitchToggle()
                 MapScaleView()
             }
             
@@ -77,6 +66,11 @@ struct MapView: View
         let endLocation = CLLocation(latitude: end.latitude, longitude: end.longitude)
         return endLocation.distance(from: startLocation)
     }
+    
+    // comment this accessor function for distance member var if needed:
+    /*func getDistance() -> Double {
+        return distance
+    }*/
 }
 
 extension MKCoordinateRegion: @retroactive Equatable {
