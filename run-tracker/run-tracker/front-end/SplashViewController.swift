@@ -5,7 +5,7 @@ struct SplashScreenView: View {
     
     var body: some View {
         if isActive {
-            ContentView()
+            OLDContentView()
         } else {
             ZStack {
                 Color.blue.ignoresSafeArea() // Background color
