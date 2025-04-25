@@ -11,97 +11,165 @@ import MapKit
 
 struct RunDetailView: View {
     private var dateStr: String
-    private var distStr: String
+    private var distInMilesStr: String
     private var timeStr: String
-    private var avgSpeedStr: String
+    private var route: [CLLocationCoordinate2D]
+    private var avgSpeedFPSStr: String
+    private var avgSpeedMPHStr: String
+    @State private var showAvgSpeedInMPH: Bool = false
+    @Binding var showDetailView: Bool
     
-    init(run: SavedRunData) {
-        dateStr = run.date.formatted(date: .abbreviated, time: .complete)
-        distStr = String(run.distance) + " m"
+    init(run: SavedRunData, showDetailView: Binding<Bool>) {
+        self.dateStr = run.date.formatted(date: .abbreviated, time: .complete)
+        self.distInMilesStr = (String(round(run.distanceInFeet * 0.0189394) / 100.0) + " mi")
         
         let time = run.time
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
-        timeStr = String(format: "%02d:%02d", minutes, seconds)
+        self.timeStr = String(format: "%02d:%02d", minutes, seconds)
         
-        avgSpeedStr = String(run.averageSpeed) + " m/s"
+        self.route = run.codableRoute.map { codableCoord in
+            CLLocationCoordinate2D(latitude: codableCoord.latitude, longitude: codableCoord.longitude)
+        }
+        
+        self.avgSpeedFPSStr = String(run.averageSpeedFPS) + " fps"
+        self.avgSpeedMPHStr = String(round(run.averageSpeedFPS * 68.1818) / 100.0) + " mph"
+        
+        self._showDetailView = showDetailView
     }
     
     var body: some View {
-        VStack {
-            Text("\(distStr)\n\(timeStr)\n\(avgSpeedStr)")
-                .font(.body)
-                .foregroundColor(.white)
-                .padding()
-                .cornerRadius(10)
-                .shadow(radius: 5)
+        ZStack {
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showDetailView = false
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding(10)
+                    }
+                }
+                .padding(.top)
+                ZStack {
+                    Map() {
+                        MapPolyline(coordinates: route)
+                            .stroke(.blue, lineWidth: 4)
+                    }
+                    .tint(.blue)
+                }
+                .frame(width: 380, height: 400)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .shadow(radius: 10)
+                HStack {
+                    Text(timeStr)
+                        .padding()
+                        .frame(width: 175)
+                        .font(.title)
+                        .foregroundColor(.white)
+                        .background(Color.clear)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                    Text(distInMilesStr)
+                        .padding()
+                        .frame(width: 175)
+                        .font(.title)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                }
+                Button(action: {
+                    showAvgSpeedInMPH = !showAvgSpeedInMPH
+                }) {
+                    Text("Avg Speed: " + (showAvgSpeedInMPH ? avgSpeedMPHStr : avgSpeedFPSStr))
+                        .padding()
+                        .frame(width: 358)
+                        .font(.title2)
+                        .foregroundColor(.white)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                }
+            }
         }
         .frame(
               minWidth: 0,
               maxWidth: .infinity,
               minHeight: 0,
               maxHeight: .infinity,
-              alignment: .topLeading
+              alignment: .top
             )
-        .padding(.top, 20)
-        .background(Color.blue.opacity(0.92))
+        .background(Color.blue.opacity(0.97))
     }
 }
 
 // Run History View
 struct RunHistoryView: View {
     var runDataKeys: [String] = []
-    
-    @State private var showDetail: Bool = false
+    @Binding var showRuns: Bool
+
     @State private var selectedRun: SavedRunData?
-    
+    @State private var showDetailView: Bool = false
+
     var body: some View {
         VStack {
-            Text("Previous Runs")
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .padding()
-            
-            if (runDataKeys.isEmpty) {
-                Text("No previous runs saved yet.")
-                    .font(.body)
-                    .foregroundColor(.gray)
-                    .padding(.top, 10)
+            HStack {
+                Spacer()
+                Button(action: {
+                    showRuns = false
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title)
+                        .foregroundColor(.white)
+                }
             }
-            
-            // Placeholder List of Runs (You can use a list to show saved runs from UserDefaults or database)
-            ForEach(runDataKeys, id: \.self) { key in
-                if let encodedRunData = UserDefaults.standard.object(forKey: key),
-                   let runData = try? JSONDecoder().decode(SavedRunData.self, from: encodedRunData as! Data) {
-                    
-                    Button(action: {
-                        showDetail = true
-                        selectedRun = runData
-                    }) {
-                        Text(runData.date.formatted(date: .abbreviated, time: .shortened))
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.black)
-                            .cornerRadius(10)
-                            .shadow(radius: 5)
+            .frame(width: 220)
+            ScrollView {
+                Text("Previous Runs")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding()
+                
+                if (runDataKeys.isEmpty) {
+                    Text("No previous runs saved yet.")
+                        .font(.body)
+                        .foregroundColor(.gray)
+                        .padding(.top, 10)
+                }
+                
+                // Placeholder List of Runs (You can use a list to show saved runs from UserDefaults or database)
+                ForEach(runDataKeys, id: \.self) { key in
+                    if let encodedRunData = UserDefaults.standard.object(forKey: key),
+                       let runData = try? JSONDecoder().decode(SavedRunData.self, from: encodedRunData as! Data) {
+                        
+                        Button(action: {
+                            showDetailView = true
+                            selectedRun = runData
+                        }) {
+                            Text(runData.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.body)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.black)
+                                .cornerRadius(10)
+                                .shadow(radius: 5)
+                        }
                     }
                 }
             }
         }
         .padding()
+        .frame(maxHeight: 400)
         .background(LinearGradient(gradient: Gradient(colors: [Color.blue, Color.purple]), startPoint: .top, endPoint: .bottom))
         .cornerRadius(20)
         .shadow(radius: 15)
-        .padding()
         
-        if showDetail {
-            RunDetailView(run: selectedRun!)
+        if showDetailView {
+            RunDetailView(run: selectedRun!, showDetailView: $showDetailView)
                 .transition(.opacity)
-                .onTapGesture {
-                    showDetail = false
-                }
                 .zIndex(1)
         }
     }
@@ -128,17 +196,35 @@ struct ConfirmationView: View {
     }
 }
 
+struct CodableCoordinate: Codable {
+    let latitude: Double
+    let longitude: Double
+    
+    init(clCoordinate: CLLocationCoordinate2D) {
+        self.latitude = clCoordinate.latitude
+        self.longitude = clCoordinate.longitude
+    }
+    
+    var toCLLocatoinCoordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
+
 struct SavedRunData: Codable {
     var date: Date
-    var distance: Double
+    var distanceInFeet: Double
     var time: TimeInterval
-    var averageSpeed: Double
+    var codableRoute: [CodableCoordinate]
+    var averageSpeedFPS: Double
     
-    init(date: Date, distance: Double, time: TimeInterval) {
+    init(date: Date, distanceInFeet: Double, time: TimeInterval, clCoordsArr: [CLLocationCoordinate2D]) {
         self.date = date
-        self.distance = distance
+        self.distanceInFeet = distanceInFeet
         self.time = time
-        self.averageSpeed = round(distance / time * 100.0) / 100.0
+        self.codableRoute = clCoordsArr.map { clCoord in
+            CodableCoordinate(clCoordinate: clCoord)
+        }
+        self.averageSpeedFPS = round(distanceInFeet / time * 100.0) / 100.0      // avg speed in feet/sec rounded to nearest 100th
     }
 }
 
@@ -197,17 +283,17 @@ struct ContentView: View {
                     }
                     // Timer Section
                     HStack {
-                        Text("\(formattedTime(elapsedTime))")
+                        Text(formattedTime(elapsedTime))
                             .padding()
-                            .frame(width: 150)
+                            .frame(width: 175)
                             .font(.title)
                             .foregroundColor(.white)
                             .background(Color.black)
                             .cornerRadius(10)
                             .shadow(radius: 5)
-                        Text("\(String(distance)) m")
+                        Text(String(distance) + " ft")
                             .padding()
-                            .frame(width: 150)
+                            .frame(width: 175)
                             .font(.title)
                             .foregroundColor(.white)
                             .background(Color.black)
@@ -265,8 +351,8 @@ struct ContentView: View {
                         .disabled(elapsedTime == 0) // Disable Save button if no time elapsed
                         
                         // Share Screenshot Button
-                        /*Button(action: {
-                            shareScreenshot()
+                        Button(action: {
+                            triggerShare()
                         }) {
                             Text("Share Screenshot")
                                 .font(.headline)
@@ -276,7 +362,8 @@ struct ContentView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(15)
                                 .shadow(radius: 5)
-                        }*/
+                        }
+                        
                     }
                     .padding(.horizontal, 20) // Add horizontal padding to the buttons
                     .padding(.bottom, 30) // Bottom padding to avoid overcrowding
@@ -286,11 +373,8 @@ struct ContentView: View {
                 
                 // Show "My Runs" View if showRuns is true
                 if showRuns {
-                    RunHistoryView(runDataKeys: savedRunKeys)
+                    RunHistoryView(runDataKeys: savedRunKeys, showRuns: $showRuns)
                         .transition(.opacity)
-                        .onTapGesture {
-                            showRuns = false // Hide the My Runs view when tapped
-                        }
                         .zIndex(1) // Ensure it is on top of other views
                 }
                 
@@ -314,7 +398,7 @@ struct ContentView: View {
     private func distanceInMeters(from start: CLLocationCoordinate2D, to end: CLLocationCoordinate2D) -> CLLocationDistance {
         let startLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
         let endLocation = CLLocation(latitude: end.latitude, longitude: end.longitude)
-        return endLocation.distance(from: startLocation)
+        return endLocation.distance(from: startLocation) * 3.28084      // gets distance and converts from meters to feet
     }
     
     private func startRun() {
@@ -341,7 +425,7 @@ struct ContentView: View {
         UserDefaults.standard.set(formattedElapsedTime, forKey: "savedTime")
         
         // save date, distance, time, and average speed to UserDefault (local storage)
-        let runData = SavedRunData(date: Date(), distance: distance, time: elapsedTime)
+        let runData = SavedRunData(date: Date(), distanceInFeet: distance, time: elapsedTime, clCoordsArr: route)
         let dataDateKey = formattedTime(elapsedTime)
         if let encodedRunData = try? JSONEncoder().encode(runData) {
             UserDefaults.standard.set(encodedRunData, forKey: dataDateKey)
@@ -363,6 +447,44 @@ struct ContentView: View {
             showConfirmation = true
         }
     }
+    
+    private func triggerShare() {
+        // Give UI time to finish tap animations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            shareScreenshot()
+        }
+    }
+
+    private func shareScreenshot() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return
+        }
+
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        let image = renderer.image { ctx in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+
+        // Present share sheet directly using UIKit
+        let activityVC = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+
+        if let rootVC = window.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
+    }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    var items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 extension MKCoordinateRegion: @retroactive Equatable {
