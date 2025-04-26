@@ -140,7 +140,7 @@ struct RunHistoryView: View {
                         .padding(.top, 10)
                 }
                 
-                // Placeholder List of Runs (You can use a list to show saved runs from UserDefaults or database)
+                // List of Runs in Run History
                 ForEach(runDataKeys, id: \.self) { key in
                     if let encodedRunData = UserDefaults.standard.object(forKey: key),
                        let runData = try? JSONDecoder().decode(SavedRunData.self, from: encodedRunData as! Data) {
@@ -420,20 +420,15 @@ struct ContentView: View {
     }
     
     private func saveRunData() {
-        let formattedElapsedTime = formattedTime(elapsedTime)
-        print("Run data saved: \(formattedElapsedTime)")
-        UserDefaults.standard.set(formattedElapsedTime, forKey: "savedTime")
-        
         // save date, distance, time, and average speed to UserDefault (local storage)
-        let runData = SavedRunData(date: Date(), distanceInFeet: distance, time: elapsedTime, clCoordsArr: route)
-        let dataDateKey = formattedTime(elapsedTime)
+        let currDate = Date()
+        let dataDateKey = String(currDate.timeIntervalSince1970)
+        let runData = SavedRunData(date: currDate, distanceInFeet: distance, time: elapsedTime, clCoordsArr: route)
         if let encodedRunData = try? JSONEncoder().encode(runData) {
             UserDefaults.standard.set(encodedRunData, forKey: dataDateKey)
         }
         savedRunKeys.append(dataDateKey)
-        
-        // get image of entire polyline (screenshot?)...
-        // ...save image of entire polyline on map view (still finding best way to save image)
+        print("Run Data Saved with key: \(dataDateKey)")
         
         // Reset timer, state, distance, and path (for polyline)
         elapsedTime = 0
