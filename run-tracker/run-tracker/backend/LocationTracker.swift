@@ -5,6 +5,7 @@
 //  Created by Quentin Rivest on 2/25/25.
 //
 
+/*
 import Combine
 import CoreLocation
 
@@ -35,3 +36,4 @@ class LocationTracker: NSObject, CLLocationManagerDelegate, ObservableObject {
     
     
 }
+*/
