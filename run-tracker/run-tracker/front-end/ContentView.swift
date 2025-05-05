@@ -92,6 +92,18 @@ struct RunDetailView: View {
                         .cornerRadius(10)
                         .shadow(radius: 5)
                 }
+                Button(action: {
+                    triggerShare()
+                }) {
+                    Text("Share Screenshot")
+                        .padding()
+                        .frame(width: 358)
+                        .font(.title2)
+                        .foregroundColor(.white)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
+                }
             }
         }
         .frame(
@@ -102,6 +114,39 @@ struct RunDetailView: View {
               alignment: .top
             )
         .background(Color.blue.opacity(0.97))
+    }
+    private func triggerShare() {
+        // Give UI time to finish tap animations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            shareScreenshot()
+        }
+    }
+    private func shareScreenshot() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return
+        }
+
+        let fullBounds = window.bounds
+        let scale = window.screen.scale
+
+        // 🛠 Instead of rendering full window, define a smaller rect
+        let desiredHeightPoints: CGFloat = 725  // You can fine-tune this later
+        let smallRect = CGRect(x: 0, y: 0, width: fullBounds.width, height: desiredHeightPoints)
+
+        let renderer = UIGraphicsImageRenderer(bounds: smallRect)
+        let image = renderer.image { ctx in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+
+        // No need to crop afterward!
+        let finalImage = UIImage(cgImage: image.cgImage!, scale: scale, orientation: .up)
+
+        let activityVC = UIActivityViewController(activityItems: [finalImage], applicationActivities: nil)
+
+        if let rootVC = window.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
     }
 }
 
@@ -385,20 +430,6 @@ struct ContentView: View {
                         }
                         .disabled(elapsedTime == 0) // Disable Save button if no time elapsed
                         
-                        // Share Screenshot Button
-                        Button(action: {
-                            triggerShare()
-                        }) {
-                            Text("Share Screenshot")
-                                .font(.headline)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(15)
-                                .shadow(radius: 5)
-                        }
-                        
                     }
                     .padding(.horizontal, 20) // Add horizontal padding to the buttons
                     .padding(.bottom, 30) // Bottom padding to avoid overcrowding
@@ -477,45 +508,6 @@ struct ContentView: View {
             showConfirmation = true
         }
     }
-    
-    private func triggerShare() {
-        // Give UI time to finish tap animations
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            shareScreenshot()
-        }
-    }
-
-    private func shareScreenshot() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else {
-            return
-        }
-
-        let fullBounds = window.bounds
-        let scale = window.screen.scale
-
-        // 🛠 Instead of rendering full window, define a smaller rect
-        let desiredHeightPoints: CGFloat = 575  // You can fine-tune this later
-        let smallRect = CGRect(x: 0, y: 0, width: fullBounds.width, height: desiredHeightPoints)
-
-        let renderer = UIGraphicsImageRenderer(bounds: smallRect)
-        let image = renderer.image { ctx in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-        }
-
-        // No need to crop afterward!
-        let finalImage = UIImage(cgImage: image.cgImage!, scale: scale, orientation: .up)
-
-        let activityVC = UIActivityViewController(activityItems: [finalImage], applicationActivities: nil)
-
-        if let rootVC = window.rootViewController {
-            rootVC.present(activityVC, animated: true)
-        }
-    }
-
-
-
-
 }
 
 // MARK: - Share Sheet
